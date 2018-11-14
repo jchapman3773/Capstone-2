@@ -2,9 +2,9 @@
   "logger": {
     "title": "Remote Sync"
   },
-  "uploadOnSave": false,
+  "uploadOnSave": true,
   "useAtomicWrites": false,
-  "deleteLocal": false,
+  "deleteLocal": true,
   "hostname": "alittleunique.asuscomm.com",
   "port": "22",
   "target": "Documents/Galvanize/Capstone-2/",
