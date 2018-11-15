@@ -1,1 +1,4 @@
 data/
+src/transfer_CNN_tensorboard/
+src/transfer_CNN_binary_tensorboard/
+src/*.h5
