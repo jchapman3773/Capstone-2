@@ -69,6 +69,8 @@ After the warmup, I unfroze the next 6 layers and continued to train (lr=0.00001
 
 ![confusion_matrix](graphics/Confusion_Matrix_with_weights.png)
 
+## Missed Targets
+
 ![fail](graphics/fail.jpg)
 
 ![failed_images](graphics/failed_images.png)
