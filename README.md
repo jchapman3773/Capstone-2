@@ -69,7 +69,7 @@ After the warmup, I unfroze the next 6 layers and continued to train (lr=0.00001
 
 ![confusion_matrix](graphics/Confusion_Matrix_with_weights.png)
 
-#### Missed Targets
+### Missed Targets
 
 [![fail](graphics/fail.jpg)](https://bized.aacsb.edu/articles/2017/11/why-its-fine-to-fail)
 
@@ -102,7 +102,7 @@ With my current model, I would like to explore unfreezing more layers and gradua
 
 Next, I plan to add to my current structure to change it from a classification prediction to a regression prediction model. Then, I will train it on image data with corresponding dimensions of bananas and people in the image.
 
-#### Image Sources
+### Image Sources
 
 Images are hyperlinked to their sources
 
