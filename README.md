@@ -1,5 +1,4 @@
 # Go Bananas!
-Project for Galvanize Data Science Immersive
 
 by Julia Chapman
 
