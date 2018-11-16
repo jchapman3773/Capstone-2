@@ -58,7 +58,7 @@ I used the keras Xception model trained on ImageNet as my initial model.
 ![Xception](graphics/imagenet_xception_flow.png)
 
 To use the Xception model, I removed the head and added a layer of my own. I added a GlobalAveragePooling2D layer with a Dense layer with n_categories nodes for output.
-To retrain the Xception model, I first started with 5 warmup epochs on just the new head (lr=0.0006)
+To retrain the Xception model, I first started with 5 warmup epochs on just the new head (lr=0.0005) with all other layers frozen.
 After the warmup, I unfroze the next 6 layers and continued to train (lr=0.00001) until the loss_validation didn't have a significant change.
 
 ![confusion_matrix](graphics/Confusion_Matrix_with_weights.png)
@@ -71,13 +71,26 @@ After the warmup, I unfroze the next 6 layers and continued to train (lr=0.00001
 
 **Final Model**
 
-Holdout Loss:
+Holdout Loss: 0.281
 
-Holdout Accuracy:
+Holdout Accuracy: 0.907
 
-My final transfer learning model had a precision of !!!!!!!!!!!!!!!!!!!!!
+Classification Report:
+
+```
+             precision    recall  f1-score   support
+
+     Banana       0.89      0.95      0.92        41
+       Both       0.98      0.94      0.96        95
+    Neither       0.87      0.85      0.86        47
+     Person       0.82      0.86      0.84        43
+
+avg / total       0.91      0.91      0.91       226
+```
 
 # Future Work
+
+With my current model, I would like to explore unfreezing more layers and gradually retraining to see if I can improve my model.
 
 Next, I plan to add to my current structure to change it from a classification prediction to a regression prediction model. Then, I will train it on image data with corresponding dimensions of bananas and people in the image.
 
