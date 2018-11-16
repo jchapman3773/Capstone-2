@@ -10,12 +10,13 @@ from keras.layers import Convolution2D, MaxPooling2D, Dense, Dropout, Activation
 from keras.utils import np_utils
 from keras.optimizers import Adam
 from keras import callbacks
+import matplotlib.pyplot as plt
 np.random.seed(1337)  # for reproducibility
 
 class SimpleCNN():
 
-    def __init__(self,batch_size=4,nb_classes=4,nb_epoch=20,img_rows=400,img_cols=400,input_dim=3,
-                                                nb_filters=32,pool_size=(2,2),kernel_size=(3,3),
+    def __init__(self,batch_size=8,nb_classes=4,nb_epoch=30,img_rows=300,img_cols=300,input_dim=3,
+                                                nb_filters=128,pool_size=(2,2),kernel_size=(3,3),
                                                 augmentation_strength=0.2):
         self.batch_size = batch_size
         self.nb_classes = nb_classes
@@ -84,30 +85,30 @@ class SimpleCNN():
                                 self.kernel_size,input_shape=(self.img_rows,self.img_cols,self.input_dim)))
         self.model.add(Activation('relu'))
         self.model.add(MaxPooling2D(pool_size=self.pool_size))
-        self.model.add(Dropout(0.5))
+        self.model.add(Dropout(0.1))
 
         self.model.add(Convolution2D(self.nb_filters,
                                 self.kernel_size))
         self.model.add(Activation('relu'))
         self.model.add(MaxPooling2D(pool_size=self.pool_size))
-        self.model.add(Dropout(0.5))
+        self.model.add(Dropout(0.1))
 
         self.model.add(Convolution2D(self.nb_filters,
                                 self.kernel_size))
         self.model.add(Activation('relu'))
         self.model.add(MaxPooling2D(pool_size=self.pool_size))
-        self.model.add(Dropout(0.5))
+        self.model.add(Dropout(0.1))
 
         # transition to an mlp
         self.model.add(Flatten())
         self.model.add(Dense(128))
         self.model.add(Activation('relu'))
-        self.model.add(Dropout(0.5))
+        self.model.add(Dropout(0.1))
         self.model.add(Dense(self.nb_classes))
         self.model.add(Activation('softmax'))
 
         self.model.compile(loss='categorical_crossentropy',
-                      optimizer=Adam(lr=0.001),
+                      optimizer=Adam(lr=0.00005),
                       metrics=['accuracy'])
 
     def fit(self):
@@ -122,7 +123,7 @@ class SimpleCNN():
         hist = callbacks.History()
         es = callbacks.EarlyStopping(monitor='val_loss',
                                             min_delta=0,
-                                            patience=2,
+                                            patience=4,
                                             verbose=1,
                                             mode='auto')
         if not os.path.exists('tensorboard_logs/Simple_CNN_tensorboard'):
@@ -137,7 +138,7 @@ class SimpleCNN():
 
         self._find_class_weights()
 
-        self.model.fit_generator(
+        history = self.model.fit_generator(
             self.train_generator,
             steps_per_epoch=len(self.train_generator),
             epochs=self.nb_epoch,
@@ -146,14 +147,40 @@ class SimpleCNN():
             validation_steps=len(self.validation_generator),
             callbacks=[mc,hist,es,tensorboard])
 
+        return history
+
 def open_saved_model(model_name,generator):
     model = load_model(model_name)
-    evaluation = model.evaluate_generator(generator, steps=len(generator), verbose=0)
-    print(evaluation)
+    predictions = np.argmax(model.predict_generator(generator, steps=len(generator), verbose=1),axis=1)
+    evaluation = model.evaluate_generator(generator, steps=len(generator), verbose=1)
+    print(evaluation,'\n',predictions)
 
 if __name__ == '__main__':
     Banana_CNN = SimpleCNN()
     _, _, holdout = Banana_CNN.make_generators('../data/Banana_People_Not/4_Classes')
     Banana_CNN.make_model()
-    Banana_CNN.fit()
+    history = Banana_CNN.fit()
     open_saved_model('models/Simple_CNN.h5',holdout)
+
+    from keras.utils import plot_model
+    plot_model(Banana_CNN.model, to_file='../graphics/Simple_CNN_model.png')
+
+    # Plot training & validation accuracy values
+    plt.plot(history.history['acc'])
+    plt.plot(history.history['val_acc'])
+    plt.title('Model accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Test'], loc='upper left')
+    plt.savefig('../graphics/Simple_CNN_acc_hist.png')
+    plt.close()
+
+    # Plot training & validation loss values
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('Model loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(['Train', 'Test'], loc='upper left')
+    plt.savefig('../graphics/Simple_CNN_loss_hist.png')
+    plt.close()

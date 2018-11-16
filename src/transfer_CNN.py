@@ -34,7 +34,7 @@ class TranseferModel():
 
     def __init__(self,model=Xception,target_size=(400,400),weights='imagenet',
                 n_categories=4,batch_size=4,augmentation_strength=0.2,
-                preprocessing=preprocess_input,epochs=20):
+                preprocessing=preprocess_input,epochs=15):
         self.model = model
         self.target_size = target_size
         self.input_size = self.target_size + (3,)
@@ -110,7 +110,7 @@ class TranseferModel():
         self.class_weights = {class_id : max_val/num_images for class_id, num_images in counter.items()}
         return self.class_weights
 
-    def fit(self,freeze_indices,optimizers,warmup_epochs=5):
+    def fit(self,freeze_indices,optimizers,warmup_epochs=10):
         # callbacks
         # filepath="models/transfer_CNN-{epoch:02d}-{val_acc:.2f}.h5"
         filepath='models/transfer_CNN.h5'
@@ -229,7 +229,7 @@ if __name__ == '__main__':
     transfer_CNN = TranseferModel()
     transfer_CNN.make_generators(dir)
     freeze_indices = [132, 126]
-    optimizers = [Adam(lr=0.0006), Adam(lr=0.0001)]
+    optimizers = [Adam(lr=0.0006), Adam(lr=0.00001)]
 
     transfer_CNN.fit(freeze_indices,optimizers)
     metrics, data = transfer_CNN.best_training_model()
