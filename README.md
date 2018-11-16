@@ -2,7 +2,7 @@
 
 by Julia Chapman
 
-![Bananas!](graphics/keep-calm-and-go-bananas-21.png)
+[![Bananas!](graphics/keep-calm-and-go-bananas-21.png)](http://jalzymedicine.blogspot.com/2015/)
 
 # Overview
 Data Source: Scraped from certain subreddits and google images using:
@@ -13,17 +13,17 @@ Data Source: Scraped from certain subreddits and google images using:
 
 In 2005, an internet meme was started when a woman, trying to sell a TV, put a banana in her sale ad as a unit of measurement. Since then, ['Banana For Scale'](https://knowyourmeme.com/memes/banana-for-scale) has grown in popularity and has been dubbed the ['yardstick of the internet.'](https://www.dailydot.com/unclick/banana-for-scale-meme-history/)
 
-![meme_origin](graphics/meme1.jpg)
+[![meme_origin](graphics/meme1.jpg)](https://knowyourmeme.com/memes/banana-for-scale)
 
 "Banana for Scale" has also been adapted to other objects. In this case, a double mattress!
 
-![meme_origin2](graphics/meme2.jpg)
+[![meme_origin2](graphics/meme2.jpg)](https://knowyourmeme.com/memes/banana-for-scale)
 
 So this got me thinking, what if you could use a banana as an actual unit for scale in an image?
 
 Unfortunately, you'll have to wait for Capstone 3 to find out.
 
-![coming-soon](graphics/coming+soon.jpg)
+[![coming-soon](graphics/coming+soon.jpg)](http://www.housecallswithdrg.com/coming-soon/)
 
 In the meantime, I set out to create a model that could predict if an image contained a banana, a person, both, or neither.
 
@@ -58,11 +58,11 @@ Because of my limited data set, I next took advantage of transfer learning to he
 
 I used the keras Xception model trained on ImageNet as my initial model. 
 
-![Xception](graphics/imagenet_xception_flow.png)
+[![Xception](graphics/imagenet_xception_flow.png)](https://www.pyimagesearch.com/2017/03/20/imagenet-vggnet-resnet-inception-xception-keras/)
 
 To use the Xception model, I removed the head and added a layer of my own. I added a GlobalAveragePooling2D layer with a Dense layer with n_categories nodes for output.
 To retrain the Xception model, I first started with 5 warmup epochs on just the new head (lr=0.0005) with all other layers frozen.
-After the warmup, I unfroze the next 6 layers and continued to train (lr=0.00001) until the loss_validation didn't have a significant change. The input images size was 400 X 400
+After the warmup, I unfroze the next 6 layers and continued to train (lr=0.00001) for 15 epochs, saving the best model based on validation loss. The input images size was 400 X 400.
 
 ![acc](graphics/Transfer_CNN_acc_hist.png)
 ![loss](graphics/Transfer_CNN_loss_hist.png)
@@ -71,7 +71,7 @@ After the warmup, I unfroze the next 6 layers and continued to train (lr=0.00001
 
 ## Missed Targets
 
-![fail](graphics/fail.jpg)
+[![fail](graphics/fail.jpg)](https://bized.aacsb.edu/articles/2017/11/why-its-fine-to-fail)
 
 ![failed_images](graphics/failed_images.png)
 
