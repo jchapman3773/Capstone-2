@@ -13,7 +13,7 @@ Data Source: Scraped from certain subreddits and google images using:
 
 In 2005, an internet meme was started when a woman, trying to sell a TV, put a banana in her sale ad as a unit of measurement. Since then, ['Banana For Scale'](https://knowyourmeme.com/memes/banana-for-scale) has grown in popularity and has been dubbed the ['yardstick of the internet.'](https://www.dailydot.com/unclick/banana-for-scale-meme-history/)
 
-[![meme_origin](graphics/meme1.jpg)](https://knowyourmeme.com/memes/banana-for-scale)
+[![meme_origin1](graphics/meme1.jpg)](https://knowyourmeme.com/memes/banana-for-scale)
 
 "Banana for Scale" has also been adapted to other objects. In this case, a double mattress!
 
@@ -23,7 +23,7 @@ So this got me thinking, what if you could use a banana as an actual unit for sc
 
 Unfortunately, you'll have to wait for Capstone 3 to find out.
 
-[![coming-soon](graphics/coming+soon.jpg)](http://www.housecallswithdrg.com/coming-soon/)
+[<img src=graphics/coming+soon.jpg width="30%">](http://www.housecallswithdrg.com/coming-soon/)
 
 In the meantime, I set out to create a model that could predict if an image contained a banana, a person, both, or neither.
 
