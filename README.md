@@ -27,7 +27,7 @@ Unfortunately, you'll have to wait for Capstone 3 to find out.
 
 In the meantime, I set out to create a model that could predict if an image contained a banana, a person, both, or neither.
 
-I also setup a private server on my home desktop with a NVIDIA 1060 3GB GPU to speed things up a bit. This turned out to help a lot, as my final model only took about 30s per epoch to train.
+I also setup a private server on my home desktop with a NVIDIA 1060 3GB GPU to speed things up a bit. This turned out to help a lot, as my final model only took about 30s per epoch to train. This gave me a lot more freedom to mess around with optimizing parameters as my models took just a matter of minutes to train, versus what could have been a matter of hours.
 
 # Data
 
