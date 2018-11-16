@@ -27,6 +27,8 @@ Unfortunately, you'll have to wait for Capstone 3 to find out.
 
 In the meantime, I set out to create a model that could predict if an image contained a banana, a person, both, or neither.
 
+I also setup a private server on my home desktop with a NVIDIA 1060 3GB GPU to speed things up a bit. This turned out to help a lot, as my final model only took about 30s per epoch to train.
+
 # Data
 
 After scraping Reddit and Google for images, I had about 1,100 images total. Three of the classes were close to balanced, with 'Both' having double the images of the others. I accounted for this imbalance by calulating sample weights to use in the fitting of my models. I split my data into training, validation, and holdout datasets with splits of 0.65/0.15/0.20 respectively.
@@ -41,7 +43,7 @@ My images varied quit a lot and had a lot of noise.
 
 # Model
 
-I first started off with a simple CNN. My final simple model used a pattern of Convolution2D and MaxPooling2D layers three times. After those six layers, the model was flattened into a dense layer with a final dense layer with n_categories nodes. There were also dropouts between each layer to help reduce overfitting. The pool size was (2,2) and there were 128 filters in each convolution with the input image size as (300,300). The learning rate was 0.00005.
+I first started off with a simple CNN. My final simple model used a pattern of Convolution2D and MaxPooling2D layers three times. After those six layers, the model was flattened into a dense layer with a final dense layer with n_categories nodes. There were also dropouts between each layer to help reduce overfitting. The pool size was (2,2) and there were 128 filters in each convolution with the input image size as 300 X 300. The learning rate was 0.00005.
 
 ![acc](graphics/Simple_CNN_acc_hist.png)
 ![loss](graphics/Simple_CNN_loss_hist.png)
@@ -60,7 +62,10 @@ I used the keras Xception model trained on ImageNet as my initial model.
 
 To use the Xception model, I removed the head and added a layer of my own. I added a GlobalAveragePooling2D layer with a Dense layer with n_categories nodes for output.
 To retrain the Xception model, I first started with 5 warmup epochs on just the new head (lr=0.0005) with all other layers frozen.
-After the warmup, I unfroze the next 6 layers and continued to train (lr=0.00001) until the loss_validation didn't have a significant change.
+After the warmup, I unfroze the next 6 layers and continued to train (lr=0.00001) until the loss_validation didn't have a significant change. The input images size was 400 X 400
+
+![acc](graphics/Transfer_CNN_acc_hist.png)
+![loss](graphics/Transfer_CNN_loss_hist.png)
 
 ![confusion_matrix](graphics/Confusion_Matrix_with_weights.png)
 
