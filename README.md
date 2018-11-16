@@ -1,7 +1,9 @@
-# Banana, Person, or Neither?
+# Go Bananas!
 Project for Galvanize Data Science Immersive
 
 by Julia Chapman
+
+![Bananas!](graphics/keep-calm-and-go-bananas-21.png)
 
 # Overview
 Data Source: Scraped from certain subreddits and google images using:
