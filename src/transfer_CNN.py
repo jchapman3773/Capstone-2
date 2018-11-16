@@ -230,7 +230,9 @@ class TranseferModel():
         plt.title('Model accuracy')
         plt.ylabel('Accuracy')
         plt.xlabel('Epoch')
+        plt.axvline(5.5,color=k,linestyle='--')
         plt.legend(['Train', 'Test'], loc='upper left')
+        plt.tight_layout()
         plt.savefig('../graphics/Transfer_CNN_acc_hist.png')
         plt.close()
 
@@ -242,7 +244,9 @@ class TranseferModel():
         plt.title('Model loss')
         plt.ylabel('Loss')
         plt.xlabel('Epoch')
+        plt.axvline(5.5,color=k,linestyle='--')
         plt.legend(['Train', 'Test'], loc='upper left')
+        plt.tight_layout()
         plt.savefig('../graphics/Transfer_CNN_loss_hist.png')
         plt.close()
 
