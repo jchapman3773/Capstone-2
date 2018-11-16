@@ -1,4 +1,4 @@
-# Banana, Person, or neither?
+# Banana, Person, or Neither?
 Project for Galvanize Data Science Immersive
 
 by Julia Chapman
