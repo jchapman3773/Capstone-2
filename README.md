@@ -98,6 +98,8 @@ avg / total       0.91      0.90      0.90       226
 
 # Future Work
 
+I would like to create a new error metric to account for images from the 'Both' category being classified as 'Banana' or 'Person' to give the model partial credit.
+
 With my current model, I would like to explore unfreezing more layers and gradually retraining to see if I can improve my model.
 
 Next, I plan to add to my current structure to change it from a classification prediction to a regression prediction model. Then, I will train it on image data with corresponding dimensions of bananas and people in the image.
