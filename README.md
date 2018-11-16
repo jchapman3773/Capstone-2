@@ -8,13 +8,13 @@ Data Source: Scraped from certain subreddits and google images using:
 
 [__Reddit Fetch__](https://github.com/nobodyme/reddit-fetch)
 
-"Banana for Scale" has also been adapted to other objects. In this case, a double mattress!
-
 [__Google Images Download__](https://github.com/hardikvasa/google-images-download)
 
 In 2005, an internet meme was started when a woman, trying to sell a TV, put a banana in her sale ad as a unit of measurement. Since then, [__'Banana For Scale'__](https://knowyourmeme.com/memes/banana-for-scale) has grown in popularity and has been dubbed the [__'yardstick of the internet.'__](https://www.dailydot.com/unclick/banana-for-scale-meme-history/)
 
 ![meme_origin](graphics/meme1.jpg)
+
+"Banana for Scale" has also been adapted to other objects. In this case, a double mattress!
 
 ![meme_origin2](graphics/meme2.jpg)
 
