@@ -40,14 +40,14 @@ My images varied quit a lot and had a lot of noise.
 
 # Model
 
-I first started off with a simple CNN. My final simple model used a pattern of Convolution2D and MaxPooling2D layers three times. After those six layers, the model was flattened into a dense layer with a final dense layer with n_categories nodes. There were also dropouts between each layer to help reduce overfitting. The pool size was (2,2) and there were 128 filters in each convolution with the input image size as (300,300). The learning rate was 0.00001.
+I first started off with a simple CNN. My final simple model used a pattern of Convolution2D and MaxPooling2D layers three times. After those six layers, the model was flattened into a dense layer with a final dense layer with n_categories nodes. There were also dropouts between each layer to help reduce overfitting. The pool size was (2,2) and there were 128 filters in each convolution with the input image size as (300,300). The learning rate was 0.00005.
 
 ![acc](graphics/Simple_CNN_acc_hist.png)
 ![loss](graphics/Simple_CNN_loss_hist.png)
 
-Holdout Loss: 
+Holdout Loss: 0.888
 
-Holdout Accuracy: 
+Holdout Accuracy: 0.677
 
 My simple CNN didn't perform very well because I have a very limited set of data with a lot of noise. To help it better learn the features, a few orders of magnitude greater of data would be optimal.
 
