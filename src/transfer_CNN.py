@@ -18,8 +18,8 @@ from keras import callbacks
 from print_pretty_confusion_matrix import plot_confusion_matrix_from_data
 from sklearn.metrics import classification_report
 import matplotlib.pyplot as plt
+mpl.style.use('classic')
 np.random.seed(1337)  # for reproducibility
-
 
 
 class TranseferModel():
@@ -118,7 +118,7 @@ class TranseferModel():
         hist = callbacks.History()
         es = callbacks.EarlyStopping(monitor='val_loss',
                                             min_delta=0,
-                                            patience=3,
+                                            patience=4,
                                             verbose=1,
                                             mode='auto')
         if not os.path.exists('tensorboard_logs/transfer_CNN_tensorboard_with_weights'):
@@ -145,7 +145,7 @@ class TranseferModel():
                                   class_weight=self.class_weights,
                                   validation_data=self.validation_generator,
                                   validation_steps=len(self.validation_generator),
-                                  callbacks=[mc, tensorboard, es, hist])
+                                  callbacks=[mc, tensorboard, hist])
         # train more layers
         self.change_trainable_layers(freeze_indices[1])
 
@@ -158,7 +158,7 @@ class TranseferModel():
                                   class_weight=self.class_weights,
                                   validation_data=self.validation_generator,
                                   validation_steps=len(self.validation_generator),
-                                  callbacks=[mc, tensorboard, es, hist])
+                                  callbacks=[mc, tensorboard, hist])
 
         return self.history1, self.history2
 
@@ -190,7 +190,16 @@ class TranseferModel():
         return
 
     def return_failed_images(self,dir,data,pred):
-        mpl.rcParams.update({'figure.figsize'      : (10,50)})
+        mpl.rcParams.update({
+            'figure.figsize'      : (8,50),
+            # 'font.size'           : 20.0,
+            # 'axes.titlesize'      : 'medium',
+            # 'axes.labelsize'      : 'medium',
+            # 'xtick.labelsize'     : 'medium',
+            # 'ytick.labelsize'     : 'medium',
+            # 'legend.fontsize'     : 'large',
+            # 'legend.loc'          : 'upper right'
+        })
         failed = data[data[:,0]!=data[:,2]]
         fig, axes = plt.subplots(len(failed),2)
 
@@ -230,7 +239,7 @@ class TranseferModel():
         plt.title('Model accuracy')
         plt.ylabel('Accuracy')
         plt.xlabel('Epoch')
-        plt.axvline(5.5,color=k,linestyle='--')
+        plt.axvline(5,color='k',linestyle='dotted')
         plt.legend(['Train', 'Test'], loc='upper left')
         plt.tight_layout()
         plt.savefig('../graphics/Transfer_CNN_acc_hist.png')
@@ -244,7 +253,7 @@ class TranseferModel():
         plt.title('Model loss')
         plt.ylabel('Loss')
         plt.xlabel('Epoch')
-        plt.axvline(5.5,color=k,linestyle='--')
+        plt.axvline(5,color='k',linestyle='dotted')
         plt.legend(['Train', 'Test'], loc='upper left')
         plt.tight_layout()
         plt.savefig('../graphics/Transfer_CNN_loss_hist.png')
@@ -255,14 +264,14 @@ if __name__ == '__main__':
     transfer_CNN = TranseferModel()
     transfer_CNN.make_generators(dir)
     freeze_indices = [132, 126]
-    optimizers = [Adam(lr=0.0005), Adam(lr=0.000005)]
+    optimizers = [Adam(lr=0.0005), Adam(lr=0.00005)]
 
     transfer_CNN.fit(freeze_indices,optimizers)
     transfer_CNN.plot_history()
 
-    # plot model
-    from keras.utils import plot_model
-    plot_model(transfer_CNN.model, to_file='../graphics/transfer_CNN_model.png')
+    # # plot model
+    # from keras.utils import plot_model
+    # plot_model(transfer_CNN.model, to_file='../graphics/transfer_CNN_model.png')
 
     metrics, data, pred = transfer_CNN.best_training_model()
     transfer_CNN.print_matrix(data[:,0],data[:,2])
