@@ -62,7 +62,7 @@ I used the keras Xception model trained on ImageNet as my initial model.
 
 To use the Xception model, I removed the head and added a layer of my own. I added a GlobalAveragePooling2D layer with a Dense layer with n_categories nodes for output.
 To retrain the Xception model, I first started with 5 warmup epochs on just the new head (lr=0.0005) with all other layers frozen.
-After the warmup, I unfroze the next 6 layers and continued to train (lr=0.00001) for 15 epochs, saving the best model based on validation loss. The input images size was 400 X 400.
+After the warmup, I unfroze the next 6 layers and continued to train (lr=0.00005) for 15 epochs, saving the best model based on validation loss. The input images size was 400 X 400.
 
 ![acc](graphics/Transfer_CNN_acc_hist.png)
 ![loss](graphics/Transfer_CNN_loss_hist.png)
