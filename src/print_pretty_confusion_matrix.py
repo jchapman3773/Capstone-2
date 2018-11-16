@@ -19,7 +19,17 @@ import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 from matplotlib.collections import QuadMesh
 import seaborn as sn
-
+import matplotlib.pyplot as mpl
+mpl.rcParams.update({
+    # 'figure.figsize'      : (10,50),
+    'font.size'           : 20.0,
+    'axes.titlesize'      : 'medium',
+    'axes.labelsize'      : 'medium',
+    'xtick.labelsize'     : 'medium',
+    'ytick.labelsize'     : 'medium',
+    'legend.fontsize'     : 'large',
+    'legend.loc'          : 'upper right'
+})
 
 def get_new_fig(fn, figsize=[9,9]):
     """ Init graphics """
@@ -118,9 +128,9 @@ def insert_totals(df_cm):
     sum_lin = []
     for item_line in df_cm.iterrows():
         sum_lin.append( item_line[1].sum() )
-    df_cm['sum_lin'] = sum_lin
+    df_cm['Row Sum'] = sum_lin
     sum_col.append(np.sum(sum_lin))
-    df_cm.loc['sum_col'] = sum_col
+    df_cm.loc['Column Sum'] = sum_col
     #print ('\ndf_cm:\n', df_cm, '\n\b\n')
 #
 
@@ -200,7 +210,7 @@ def pretty_plot_confusion_matrix(df_cm, annot=True, cmap="Oranges", fmt='.2f', f
     ax.set_xlabel(xlbl)
     ax.set_ylabel(ylbl)
     plt.tight_layout()  #set layout slim
-    plt.savefig('Confusion_Matrix.png')
+    plt.savefig('../graphics/Confusion_Matrix_with_weights.png')
     plt.close()
 #
 

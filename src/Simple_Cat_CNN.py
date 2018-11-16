@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+from collections import Counter
 from sklearn.metrics import confusion_matrix
 from sklearn.utils import class_weight
 from keras.preprocessing.image import ImageDataGenerator
@@ -13,8 +14,9 @@ np.random.seed(1337)  # for reproducibility
 
 class SimpleCNN():
 
-    def __init__(self,batch_size=8,nb_classes=4,nb_epoch=20,img_rows=128,img_cols=128,input_dim=3,
-                                                nb_filters=64,pool_size=(2,2),kernel_size=(3,3)):
+    def __init__(self,batch_size=4,nb_classes=4,nb_epoch=20,img_rows=400,img_cols=400,input_dim=3,
+                                                nb_filters=32,pool_size=(2,2),kernel_size=(3,3),
+                                                augmentation_strength=0.2):
         self.batch_size = batch_size
         self.nb_classes = nb_classes
         self.nb_epoch = nb_epoch
@@ -28,6 +30,8 @@ class SimpleCNN():
         self.validation_generator = None
         self.holdout_generator = None
         self.model = None
+        self.class_weights = None
+        self.augmentation_strength = augmentation_strength
 
     def make_generators(self,directory):
         train_data_dir = directory+'/train'
@@ -36,9 +40,11 @@ class SimpleCNN():
 
         train_datagen = ImageDataGenerator(
             rescale=1. / 255,
-            shear_range=0.2,
-            zoom_range=0.2,
-            rotation_range=180,
+            rotation_range=15*self.augmentation_strength,
+            width_shift_range=self.augmentation_strength,
+            height_shift_range=self.augmentation_strength,
+            shear_range=self.augmentation_strength,
+            zoom_range=self.augmentation_strength,
             horizontal_flip=True,
             vertical_flip=True)
 
@@ -65,67 +71,50 @@ class SimpleCNN():
             class_mode='categorical')
         return self.train_generator, self.validation_generator, self.holdout_generator
 
+    def _find_class_weights(self):
+        counter = Counter(self.train_generator.classes)
+        max_val = float(max(counter.values()))
+        self.class_weights = {class_id : max_val/num_images for class_id, num_images in counter.items()}
+        return self.class_weights
+
     def make_model(self):
         self.model = Sequential()
+
         self.model.add(Convolution2D(self.nb_filters,
-                                self.kernel_size,
-                                input_shape=(self.img_rows,self.img_cols,self.input_dim)))
+                                self.kernel_size,input_shape=(self.img_rows,self.img_cols,self.input_dim)))
         self.model.add(Activation('relu'))
-        # self.model.add(Convolution2D(self.nb_filters,
-        #                         self.kernel_size))
-        # self.model.add(Activation('relu'))
-        # self.model.add(Convolution2D(self.nb_filters,
-        #                         self.kernel_size))
-        # self.model.add(MaxPooling2D(pool_size=self.pool_size))
-        # self.model.add(Dropout(0.1))
-        # self.model.add(Activation('relu'))
-        # self.model.add(Convolution2D(self.nb_filters,
-        #                         self.kernel_size))
-        # self.model.add(Activation('relu'))
-        # self.model.add(Convolution2D(self.nb_filters,
-        #                         self.kernel_size))
-        # self.model.add(MaxPooling2D(pool_size=self.pool_size))
-        # self.model.add(Dropout(0.1))
-        # self.model.add(Activation('relu'))
-        # self.model.add(Convolution2D(self.nb_filters,
-        #                         self.kernel_size))
-        # self.model.add(Activation('relu'))
-        # self.model.add(Convolution2D(self.nb_filters,
-        #                         self.kernel_size))
-        # self.model.add(MaxPooling2D(pool_size=self.pool_size))
-        # self.model.add(Dropout(0.1))
-        # self.model.add(Activation('relu'))
-        # self.model.add(Convolution2D(self.nb_filters,
-        #                         self.kernel_size))
-        # self.model.add(Activation('relu'))
+        self.model.add(MaxPooling2D(pool_size=self.pool_size))
+        self.model.add(Dropout(0.5))
+
         self.model.add(Convolution2D(self.nb_filters,
                                 self.kernel_size))
         self.model.add(Activation('relu'))
         self.model.add(MaxPooling2D(pool_size=self.pool_size))
-        self.model.add(Dropout(0.1))
+        self.model.add(Dropout(0.5))
 
         self.model.add(Convolution2D(self.nb_filters,
                                 self.kernel_size))
         self.model.add(Activation('relu'))
+        self.model.add(MaxPooling2D(pool_size=self.pool_size))
+        self.model.add(Dropout(0.5))
 
         # transition to an mlp
         self.model.add(Flatten())
-        # self.model.add(Dense(128))
-        # self.model.add(Activation('relu'))
-        # self.model.add(Dropout(0.1))
+        self.model.add(Dense(128))
+        self.model.add(Activation('relu'))
+        self.model.add(Dropout(0.5))
         self.model.add(Dense(self.nb_classes))
         self.model.add(Activation('softmax'))
 
-        adam = Adam(lr=0.001)
-
         self.model.compile(loss='categorical_crossentropy',
-                      optimizer=adam,
+                      optimizer=Adam(lr=0.001),
                       metrics=['accuracy'])
 
     def fit(self):
-        mc = callbacks.ModelCheckpoint('Simple_CNN_Model_BPN.h5',
+        filepath='models/Simple_CNN.h5'
+        mc = callbacks.ModelCheckpoint(filepath,
                                             monitor='val_loss',
-                                            verbose=0,
+                                            verbose=1,
                                             save_best_only=True,
                                             save_weights_only=False,
                                             mode='auto',
@@ -133,27 +122,29 @@ class SimpleCNN():
         hist = callbacks.History()
         es = callbacks.EarlyStopping(monitor='val_loss',
                                             min_delta=0,
-                                            patience=0,
-                                            verbose=0,
+                                            patience=2,
+                                            verbose=1,
                                             mode='auto')
-        if not os.path.exists('Simple_Cat_CNN_tensorboard'):
-            os.makedirs('Simple_Cat_CNN_tensorboard')
+        if not os.path.exists('tensorboard_logs/Simple_CNN_tensorboard'):
+            os.makedirs('tensorboard_logs/Simple_CNN_tensorboard')
         tensorboard = callbacks.TensorBoard(
-                    log_dir='Simple_Cat_CNN_tensorboard',
+                    log_dir='tensorboard_logs/Simple_CNN_tensorboard',
                     histogram_freq=0,
                     batch_size=self.batch_size,
                     write_graph=True,
-                    embeddings_freq=0)
+                    embeddings_freq=0,
+                    write_images=False)
+
+        self._find_class_weights()
+
         self.model.fit_generator(
             self.train_generator,
             steps_per_epoch=len(self.train_generator),
             epochs=self.nb_epoch,
+            class_weight=self.class_weights,
             validation_data=self.validation_generator,
             validation_steps=len(self.validation_generator),
             callbacks=[mc,hist,es,tensorboard])
-
-def confusion_matrix_CNN(predictions,true):
-    pass
 
 def open_saved_model(model_name,generator):
     model = load_model(model_name)
@@ -162,7 +153,7 @@ def open_saved_model(model_name,generator):
 
 if __name__ == '__main__':
     Banana_CNN = SimpleCNN()
-    _, generator, _ = Banana_CNN.make_generators('../data/Banana_People_Not/4_Classes')
+    _, _, holdout = Banana_CNN.make_generators('../data/Banana_People_Not/4_Classes')
     Banana_CNN.make_model()
     Banana_CNN.fit()
-    # open_saved_model('Simple_CNN_Model_BPN.h5',generator)
+    open_saved_model('models/Simple_CNN.h5',holdout)

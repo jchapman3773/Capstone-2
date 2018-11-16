@@ -5,6 +5,7 @@ if os.environ.get('DISPLAY','') == '':
     mpl.use('Agg')
 import numpy as np
 from PIL import Image
+from collections import Counter
 from keras.applications import Xception, ResNet50
 from keras.preprocessing import image
 from keras.layers import Dense, GlobalAveragePooling2D, Flatten, Dropout
@@ -16,6 +17,7 @@ from keras.models import Sequential, load_model
 from keras import callbacks
 from print_pretty_confusion_matrix import plot_confusion_matrix_from_data
 import matplotlib.pyplot as plt
+np.random.seed(1337)  # for reproducibility
 mpl.rcParams.update({
     'figure.figsize'      : (10,50),
     # 'font.size'           : 20.0,
@@ -30,9 +32,9 @@ mpl.rcParams.update({
 
 class TranseferModel():
 
-    def __init__(self,model=Xception,target_size=(299,299),weights='imagenet',
-                n_categories=4,batch_size=8,augmentation_strength=0.2,
-                preprocessing=preprocess_input,epochs=10):
+    def __init__(self,model=Xception,target_size=(400,400),weights='imagenet',
+                n_categories=4,batch_size=4,augmentation_strength=0.2,
+                preprocessing=preprocess_input,epochs=20):
         self.model = model
         self.target_size = target_size
         self.input_size = self.target_size + (3,)
@@ -45,6 +47,7 @@ class TranseferModel():
         self.augmentation_strength = augmentation_strength
         self.preprocessing = preprocessing
         self.epochs = epochs
+        self.class_weights = None
 
     def _create_transfer_model(self):
         base_model = self.model(weights=self.weights,
@@ -92,19 +95,28 @@ class TranseferModel():
             batch_size=self.batch_size,
             class_mode='categorical',
             shuffle=False)
+
+        self.holdout_generator_images = test_datagen.flow_from_directory(
+            holdout_data_dir,
+            target_size=self.target_size,
+            batch_size=219,
+            class_mode='categorical',
+            shuffle=False)
         return self.train_generator, self.validation_generator, self.holdout_generator
 
+    def _find_class_weights(self):
+        counter = Counter(self.train_generator.classes)
+        max_val = float(max(counter.values()))
+        self.class_weights = {class_id : max_val/num_images for class_id, num_images in counter.items()}
+        return self.class_weights
+
     def fit(self,freeze_indices,optimizers,warmup_epochs=5):
-        #change head
-        self._create_transfer_model()
-        self.change_trainable_layers(freeze_indices[0])
-        # train head
-        self.model.compile(optimizer=optimizers[0],
-                      loss='categorical_crossentropy', metrics=['accuracy'])
         # callbacks
-        mc = callbacks.ModelCheckpoint('transfer_CNN.h5',
+        # filepath="models/transfer_CNN-{epoch:02d}-{val_acc:.2f}.h5"
+        filepath='models/transfer_CNN.h5'
+        mc = callbacks.ModelCheckpoint(filepath,
                                             monitor='val_loss',
-                                            verbose=0,
+                                            verbose=1,
                                             save_best_only=True,
                                             save_weights_only=False,
                                             mode='auto',
@@ -112,36 +124,47 @@ class TranseferModel():
         hist = callbacks.History()
         es = callbacks.EarlyStopping(monitor='val_loss',
                                             min_delta=0,
-                                            patience=1,
-                                            verbose=0,
+                                            patience=2,
+                                            verbose=1,
                                             mode='auto')
-        if not os.path.exists('transfer_CNN_tensorboard'):
-            os.makedirs('transfer_CNN_tensorboard')
+        if not os.path.exists('tensorboard_logs/transfer_CNN_tensorboard_with_weights'):
+            os.makedirs('tensorboard_logs/transfer_CNN_tensorboard_with_weights')
         tensorboard = callbacks.TensorBoard(
-                    log_dir='transfer_CNN_tensorboard',
+                    log_dir='tensorboard_logs/transfer_CNN_tensorboard_with_weights',
                     histogram_freq=0,
                     batch_size=self.batch_size,
                     write_graph=True,
-                    embeddings_freq=0)
+                    embeddings_freq=0,
+                    write_images=False)
 
-        history = self.model.fit_generator(self.train_generator,
-                                      steps_per_epoch=len(self.train_generator),
-                                      epochs=warmup_epochs,
-                                      validation_data=self.validation_generator,
-                                      validation_steps=len(self.validation_generator),
-                                      callbacks=[mc, tensorboard, es, hist])
+        #change head
+        self._create_transfer_model()
+        self.change_trainable_layers(freeze_indices[0])
+        self._find_class_weights()
+        # train head
+        self.model.compile(optimizer=optimizers[0],
+                      loss='categorical_crossentropy', metrics=['accuracy'])
+
+        self.model.fit_generator(self.train_generator,
+                                  steps_per_epoch=len(self.train_generator),
+                                  epochs=warmup_epochs,
+                                  class_weight=self.class_weights,
+                                  validation_data=self.validation_generator,
+                                  validation_steps=len(self.validation_generator),
+                                  callbacks=[mc, tensorboard, es, hist])
         # train more layers
         self.change_trainable_layers(freeze_indices[1])
 
         self.model.compile(optimizer=optimizers[0],
                       loss='categorical_crossentropy', metrics=['accuracy'])
 
-        history = self.model.fit_generator(self.train_generator,
-                                      steps_per_epoch=len(self.train_generator),
-                                      epochs=self.epochs,
-                                      validation_data=self.validation_generator,
-                                      validation_steps=len(self.validation_generator),
-                                      callbacks=[mc, tensorboard, es, hist])
+        self.model.fit_generator(self.train_generator,
+                                  steps_per_epoch=len(self.train_generator),
+                                  epochs=self.epochs,
+                                  class_weight=self.class_weights,
+                                  validation_data=self.validation_generator,
+                                  validation_steps=len(self.validation_generator),
+                                  callbacks=[mc, tensorboard, es, hist])
 
     def change_trainable_layers(self, trainable_index):
         for layer in self.model.layers[:trainable_index]:
@@ -150,7 +173,7 @@ class TranseferModel():
             layer.trainable = True
 
     def best_training_model(self):
-        model = load_model('transfer_CNN.h5')
+        model = load_model('models/transfer_CNN.h5')
         predictions = model.predict_generator(self.holdout_generator,
                                                 steps=len(self.holdout_generator))
         predictions = np.argmax(predictions, axis=-1)
@@ -161,7 +184,8 @@ class TranseferModel():
         predictions = np.array(predictions).reshape(-1,1)
         data = np.hstack((names,predictions))
         metrics = model.evaluate_generator(self.holdout_generator,
-                                            steps=len(self.holdout_generator))
+                                            steps=len(self.holdout_generator),
+                                            verbose=1)
         return metrics, data
 
     def print_matrix(self,y_true,y_pred):
@@ -172,38 +196,31 @@ class TranseferModel():
     def return_failed_images(self,dir,data):
         failed = data[data[:,0]!=data[:,2]]
         fig, axes = plt.subplots(len(failed),2)
+
+        test_X = self.holdout_generator_images[0][0]
+        indices = np.where(data[:,0]!=data[:,2])[0]
+
         for idx,row in enumerate(failed):
             file_path = dir+'/holdout/'+row[0]+'/'+row[1]
             # plot original image
             axes[idx][0].imshow(Image.open(file_path))
-            # recreate preprocessed image
-            img = image.load_img(file_path, target_size=(299, 299))
-            img = image.img_to_array(img)
-            img = np.expand_dims(img, axis=0)
-            img = preprocess_input(img)
-            axes[idx][1].imshow(img)
-            # set title and remove ticks
-            axes[idx].set_title(row[2])
-            axes[idx].get_xaxis().set_visible(False)
-            axes[idx].get_yaxis().set_visible(False)
-            for t in axes[idx].xaxis.get_major_ticks():
-                t.tick1On = False
-                t.tick2On = False
-            for t in axes[idx].yaxis.get_major_ticks():
-                t.tick1On = False
-                t.tick2On = False
-            # for idx2 in range(2):
-            #     axes[idx][idx2].set_title(row[2])
-            #     axes[idx][idx2].get_xaxis().set_visible(False)
-            #     axes[idx][idx2].get_yaxis().set_visible(False)
-            #     for t in axes[idx][idx2].xaxis.get_major_ticks():
-            #         t.tick1On = False
-            #         t.tick2On = False
-            #     for t in axes[idx][idx2].yaxis.get_major_ticks():
-            #         t.tick1On = False
-            #         t.tick2On = False
+            # plot processed image
+            axes[idx][1].imshow((test_X[indices[idx]]/2)+0.5)
+            # set titles
+            axes[idx][0].set_title(f'Actual: {row[0]}')
+            axes[idx][1].set_title(f'Predicted: {row[2]}')
+            # remove ticks
+            for idx2 in range(2):
+                axes[idx][idx2].get_xaxis().set_visible(False)
+                axes[idx][idx2].get_yaxis().set_visible(False)
+                for t in axes[idx][idx2].xaxis.get_major_ticks():
+                    t.tick1On = False
+                    t.tick2On = False
+                for t in axes[idx][idx2].yaxis.get_major_ticks():
+                    t.tick1On = False
+                    t.tick2On = False
         plt.tight_layout()
-        plt.savefig('failed_images.png')
+        plt.savefig('../graphics/failed_images.png')
         plt.close()
         return
 
@@ -211,12 +228,11 @@ if __name__ == '__main__':
     dir = '../data/Banana_People_Not/4_Classes'
     transfer_CNN = TranseferModel()
     transfer_CNN.make_generators(dir)
-
     freeze_indices = [132, 126]
     optimizers = [Adam(lr=0.0006), Adam(lr=0.0001)]
 
-    # transfer_CNN.fit(freeze_indices,optimizers)
+    transfer_CNN.fit(freeze_indices,optimizers)
     metrics, data = transfer_CNN.best_training_model()
-    # transfer_CNN.print_matrix(data[:,0],data[:,2])
+    transfer_CNN.print_matrix(data[:,0],data[:,2])
     print(metrics)
     transfer_CNN.return_failed_images(dir,data)
