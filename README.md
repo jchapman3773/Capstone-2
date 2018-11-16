@@ -79,21 +79,21 @@ After the warmup, I unfroze the next 6 layers and continued to train (lr=0.00001
 
 **Final Model**
 
-Holdout Loss: 0.281
+Holdout Loss: 0.270
 
-Holdout Accuracy: 0.907
+Holdout Accuracy: 0.903
 
 Classification Report:
 
 ```
              precision    recall  f1-score   support
 
-     Banana       0.89      0.95      0.92        41
-       Both       0.98      0.94      0.96        95
+     Banana       0.87      0.95      0.91        41
+       Both       0.98      0.93      0.95        95
     Neither       0.87      0.85      0.86        47
      Person       0.82      0.86      0.84        43
 
-avg / total       0.91      0.91      0.91       226
+avg / total       0.91      0.90      0.90       226
 ```
 
 # Future Work
