@@ -38,7 +38,10 @@ My images varied quit a lot and had a lot of noise.
 
 # Model
 
-I first started off with a simple CNN. My final simple model used a pattern of Convolution2D and MaxPooling2D layers three times. After those six layers, the model was flattened, and !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+I first started off with a simple CNN. My final simple model used a pattern of Convolution2D and MaxPooling2D layers three times. After those six layers, the model was flattened into a dense layer with a final dense layer with n_categories nodes. There were also dropouts between each layer to help reduce overfitting. The pool size was (2,2) and there were 128 filters in each convolution with the input image size as (300,300).
+
+![acc](graphics/Simple_CNN_loss_hist.png)
+![loss](graphics/Simple_CNN_loss_hist.png)
 
 My simple CNN didn't perform very well because I have a very limited set of data with a lot of noise. To help it better learn the features, a few orders of magnitude greater of data would be optimal.
 
@@ -47,4 +50,22 @@ Because of my limited data set, I next took advantage of transfer learning to he
 I used the keras Xception model trained on ImageNet as my initial model. 
 
 ![Xception](graphics/imagenet_xception_flow.png)
+
+To use the Xception model, I removed the head and added a layer of my own. I added a GlobalAveragePooling2D layer with a Dense layer with n_categories nodes for output.
+To retrain the Xception model, I first started with 5 warmup epochs on just the new head (lr=0.0006)
+After the warmup, I unfroze the next 6 layers and continued to train (lr=0.00001) until the loss_validation didn't have a significant change.
+
+![confusion_matrix](graphics/Confusion_Matrix_with_weights.png)
+
+![fail](graphics/fail.jpg)
+
+![failed_images](graphics/failed_images.png)
+
+# Results
+
+My final transfer learning model had a precision of !!!!!!!!!!!!!!!!!!!!!
+
+# Future Work
+
+Next, I plan to add to my current structure to change it from a classification prediction to a regression prediction model. Then, I will train it on image data with corresponding dimensions of bananas and people in the image.
 
