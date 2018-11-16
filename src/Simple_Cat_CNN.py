@@ -33,6 +33,7 @@ class SimpleCNN():
         self.model = None
         self.class_weights = None
         self.augmentation_strength = augmentation_strength
+        self.history = None
 
     def make_generators(self,directory):
         train_data_dir = directory+'/train'
@@ -138,7 +139,7 @@ class SimpleCNN():
 
         self._find_class_weights()
 
-        history = self.model.fit_generator(
+        self.history = self.model.fit_generator(
             self.train_generator,
             steps_per_epoch=len(self.train_generator),
             epochs=self.nb_epoch,
@@ -147,7 +148,29 @@ class SimpleCNN():
             validation_steps=len(self.validation_generator),
             callbacks=[mc,hist,es,tensorboard])
 
-        return history
+        return self.history
+
+    def plot_history(self):
+        # Plot training & validation accuracy values
+        plt.plot(self.history.history['acc'])
+        plt.plot(self.history.history['val_acc'])
+        plt.title('Model accuracy')
+        plt.ylabel('Accuracy')
+        plt.xlabel('Epoch')
+        plt.legend(['Train', 'Test'], loc='upper left')
+        plt.savefig('../graphics/Simple_CNN_acc_hist.png')
+        plt.close()
+
+        # Plot training & validation loss values
+        plt.plot(self.history.history['loss'])
+        plt.plot(self.history.history['val_loss'])
+        plt.title('Model loss')
+        plt.ylabel('Loss')
+        plt.xlabel('Epoch')
+        plt.legend(['Train', 'Test'], loc='upper left')
+        plt.savefig('../graphics/Simple_CNN_loss_hist.png')
+        plt.close()
+
 
 def open_saved_model(model_name,generator):
     model = load_model(model_name)
@@ -159,29 +182,10 @@ if __name__ == '__main__':
     Banana_CNN = SimpleCNN()
     _, _, holdout = Banana_CNN.make_generators('../data/Banana_People_Not/4_Classes')
     Banana_CNN.make_model()
-    history = Banana_CNN.fit()
+    Banana_CNN.fit()
+    Banana_CNN.plot_history()
     open_saved_model('models/Simple_CNN.h5',holdout)
 
     ## plot model
     # from keras.utils import plot_model
     # plot_model(Banana_CNN.model, to_file='../graphics/Simple_CNN_model.png')
-
-    # Plot training & validation accuracy values
-    plt.plot(history.history['acc'])
-    plt.plot(history.history['val_acc'])
-    plt.title('Model accuracy')
-    plt.ylabel('Accuracy')
-    plt.xlabel('Epoch')
-    plt.legend(['Train', 'Test'], loc='upper left')
-    plt.savefig('../graphics/Simple_CNN_acc_hist.png')
-    plt.close()
-
-    # Plot training & validation loss values
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Model loss')
-    plt.ylabel('Loss')
-    plt.xlabel('Epoch')
-    plt.legend(['Train', 'Test'], loc='upper left')
-    plt.savefig('../graphics/Simple_CNN_loss_hist.png')
-    plt.close()

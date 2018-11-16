@@ -19,16 +19,7 @@ from print_pretty_confusion_matrix import plot_confusion_matrix_from_data
 from sklearn.metrics import classification_report
 import matplotlib.pyplot as plt
 np.random.seed(1337)  # for reproducibility
-mpl.rcParams.update({
-    'figure.figsize'      : (10,50),
-    # 'font.size'           : 20.0,
-    # 'axes.titlesize'      : 'large',
-    # 'axes.labelsize'      : 'medium',
-    # 'xtick.labelsize'     : 'medium',
-    # 'ytick.labelsize'     : 'medium',
-    # 'legend.fontsize'     : 'large',
-    # 'legend.loc'          : 'upper right'
-})
+
 
 
 class TranseferModel():
@@ -49,6 +40,8 @@ class TranseferModel():
         self.preprocessing = preprocessing
         self.epochs = epochs
         self.class_weights = None
+        self.history1 = None
+        self.history2 = None
 
     def _create_transfer_model(self):
         base_model = self.model(weights=self.weights,
@@ -146,7 +139,7 @@ class TranseferModel():
         self.model.compile(optimizer=optimizers[0],
                       loss='categorical_crossentropy', metrics=['accuracy'])
 
-        self.model.fit_generator(self.train_generator,
+        self.history1 = self.model.fit_generator(self.train_generator,
                                   steps_per_epoch=len(self.train_generator),
                                   epochs=warmup_epochs,
                                   class_weight=self.class_weights,
@@ -159,13 +152,15 @@ class TranseferModel():
         self.model.compile(optimizer=optimizers[0],
                       loss='categorical_crossentropy', metrics=['accuracy'])
 
-        self.model.fit_generator(self.train_generator,
+        self.history2 = self.model.fit_generator(self.train_generator,
                                   steps_per_epoch=len(self.train_generator),
                                   epochs=self.epochs,
                                   class_weight=self.class_weights,
                                   validation_data=self.validation_generator,
                                   validation_steps=len(self.validation_generator),
                                   callbacks=[mc, tensorboard, es, hist])
+
+        return self.history1, self.history2
 
     def change_trainable_layers(self, trainable_index):
         for layer in self.model.layers[:trainable_index]:
@@ -195,6 +190,7 @@ class TranseferModel():
         return
 
     def return_failed_images(self,dir,data,pred):
+        mpl.rcParams.update({'figure.figsize'      : (10,50)})
         failed = data[data[:,0]!=data[:,2]]
         fig, axes = plt.subplots(len(failed),2)
 
@@ -225,14 +221,45 @@ class TranseferModel():
         plt.close()
         return
 
+    def plot_history(self):
+        # Plot training & validation accuracy values
+        hist_acc = np.hstack((self.history1.history['acc'],self.history2.history['acc']))
+        hist_val_acc = np.hstack((self.history1.history['val_acc'],self.history2.history['val_acc']))
+        plt.plot(hist_acc)
+        plt.plot(hist_val_acc)
+        plt.title('Model accuracy')
+        plt.ylabel('Accuracy')
+        plt.xlabel('Epoch')
+        plt.legend(['Train', 'Test'], loc='upper left')
+        plt.savefig('../graphics/Transfer_CNN_acc_hist.png')
+        plt.close()
+
+        # Plot training & validation loss values
+        hist_loss = np.hstack((self.history1.history['loss'],self.history2.history['loss']))
+        hist_val_loss = np.hstack((self.history1.history['val_loss'],self.history2.history['val_loss']))
+        plt.plot(hist_loss)
+        plt.plot(hist_val_loss)
+        plt.title('Model loss')
+        plt.ylabel('Loss')
+        plt.xlabel('Epoch')
+        plt.legend(['Train', 'Test'], loc='upper left')
+        plt.savefig('../graphics/Transfer_CNN_loss_hist.png')
+        plt.close()
+
 if __name__ == '__main__':
     dir = '../data/Banana_People_Not/4_Classes'
     transfer_CNN = TranseferModel()
     transfer_CNN.make_generators(dir)
     freeze_indices = [132, 126]
-    optimizers = [Adam(lr=0.0005), Adam(lr=0.00001)]
+    optimizers = [Adam(lr=0.0005), Adam(lr=0.000005)]
 
     transfer_CNN.fit(freeze_indices,optimizers)
+    transfer_CNN.plot_history()
+
+    # plot model
+    from keras.utils import plot_model
+    plot_model(transfer_CNN.model, to_file='../graphics/transfer_CNN_model.png')
+
     metrics, data, pred = transfer_CNN.best_training_model()
     transfer_CNN.print_matrix(data[:,0],data[:,2])
     print(metrics)
