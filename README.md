@@ -28,7 +28,7 @@ In the meantime, I set out to create a model that could predict if an image cont
 
 # Data
 
-After scraping Reddit and Google for images, I had about 1,100 images total. Three of the classes were close to balanced, with 'Both' having double the images of the others. I split my data into training, validation, and holdout datasets with splits of 0.65/0.15/0.20 respectively.
+After scraping Reddit and Google for images, I had about 1,100 images total. Three of the classes were close to balanced, with 'Both' having double the images of the others. I accounted for this imbalance by calulating sample weights to use in the fitting of my models. I split my data into training, validation, and holdout datasets with splits of 0.65/0.15/0.20 respectively.
 
 Mean Img Size: 1132 X 1243
 
