@@ -15,7 +15,7 @@ np.random.seed(1337)  # for reproducibility
 
 class SimpleCNN():
 
-    def __init__(self,batch_size=8,nb_classes=4,nb_epoch=30,img_rows=300,img_cols=300,input_dim=3,
+    def __init__(self,batch_size=4,nb_classes=4,nb_epoch=30,img_rows=300,img_cols=300,input_dim=3,
                                                 nb_filters=128,pool_size=(2,2),kernel_size=(3,3),
                                                 augmentation_strength=0.2):
         self.batch_size = batch_size
@@ -162,8 +162,9 @@ if __name__ == '__main__':
     history = Banana_CNN.fit()
     open_saved_model('models/Simple_CNN.h5',holdout)
 
-    from keras.utils import plot_model
-    plot_model(Banana_CNN.model, to_file='../graphics/Simple_CNN_model.png')
+    ## plot model
+    # from keras.utils import plot_model
+    # plot_model(Banana_CNN.model, to_file='../graphics/Simple_CNN_model.png')
 
     # Plot training & validation accuracy values
     plt.plot(history.history['acc'])
