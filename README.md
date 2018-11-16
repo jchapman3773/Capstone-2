@@ -6,11 +6,11 @@ by Julia Chapman
 # Overview
 Data Source: Scraped from certain subreddits and google images using:
 
-[__Reddit Fetch__](https://github.com/nobodyme/reddit-fetch)
+[Reddit Fetch](https://github.com/nobodyme/reddit-fetch)
 
-[__Google Images Download__](https://github.com/hardikvasa/google-images-download)
+[Google Images Download](https://github.com/hardikvasa/google-images-download)
 
-In 2005, an internet meme was started when a woman, trying to sell a TV, put a banana in her sale ad as a unit of measurement. Since then, [__'Banana For Scale'__](https://knowyourmeme.com/memes/banana-for-scale) has grown in popularity and has been dubbed the [__'yardstick of the internet.'__](https://www.dailydot.com/unclick/banana-for-scale-meme-history/)
+In 2005, an internet meme was started when a woman, trying to sell a TV, put a banana in her sale ad as a unit of measurement. Since then, ['Banana For Scale'](https://knowyourmeme.com/memes/banana-for-scale) has grown in popularity and has been dubbed the ['yardstick of the internet.'](https://www.dailydot.com/unclick/banana-for-scale-meme-history/)
 
 ![meme_origin](graphics/meme1.jpg)
 
@@ -40,10 +40,14 @@ My images varied quit a lot and had a lot of noise.
 
 # Model
 
-I first started off with a simple CNN. My final simple model used a pattern of Convolution2D and MaxPooling2D layers three times. After those six layers, the model was flattened into a dense layer with a final dense layer with n_categories nodes. There were also dropouts between each layer to help reduce overfitting. The pool size was (2,2) and there were 128 filters in each convolution with the input image size as (300,300).
+I first started off with a simple CNN. My final simple model used a pattern of Convolution2D and MaxPooling2D layers three times. After those six layers, the model was flattened into a dense layer with a final dense layer with n_categories nodes. There were also dropouts between each layer to help reduce overfitting. The pool size was (2,2) and there were 128 filters in each convolution with the input image size as (300,300). The learning rate was 0.00001.
 
 ![acc](graphics/Simple_CNN_acc_hist.png)
 ![loss](graphics/Simple_CNN_loss_hist.png)
+
+Holdout Loss: 
+
+Holdout Accuracy: 
 
 My simple CNN didn't perform very well because I have a very limited set of data with a lot of noise. To help it better learn the features, a few orders of magnitude greater of data would be optimal.
 
@@ -64,6 +68,12 @@ After the warmup, I unfroze the next 6 layers and continued to train (lr=0.00001
 ![failed_images](graphics/failed_images.png)
 
 # Results
+
+**Final Model**
+
+Holdout Loss:
+
+Holdout Accuracy:
 
 My final transfer learning model had a precision of !!!!!!!!!!!!!!!!!!!!!
 
