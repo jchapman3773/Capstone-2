@@ -10,7 +10,7 @@ Data Source: Scraped from certain subreddits and google images using:
 
 [__Google Images Download__](https://github.com/hardikvasa/google-images-download)
 
-In 2005, an internet meme was started when a woman, trying to sell a TV, put a banana in her sale ad as a unit of measurement. Since then, [__'Banana For Scale'__](https://knowyourmeme.com/memes/banana-for-scale) has grown in popularity and has been dubbed the [__'yardstick of the internet'__](https://www.dailydot.com/unclick/banana-for-scale-meme-history/)
+In 2005, an internet meme was started when a woman, trying to sell a TV, put a banana in her sale ad as a unit of measurement. Since then, [__'Banana For Scale'__](https://knowyourmeme.com/memes/banana-for-scale) has grown in popularity and has been dubbed the [__'yardstick of the internet.'__](https://www.dailydot.com/unclick/banana-for-scale-meme-history/)
 
 ![meme_origin](graphics/meme1.jpg)
 
@@ -18,9 +18,33 @@ In 2005, an internet meme was started when a woman, trying to sell a TV, put a b
 
 So this got me thinking, what if you could use a banana as an actual unit for scale in an image?
 
-Unfortunetly, you'll have to wait for Capstone 3 to find out.
+Unfortunately, you'll have to wait for Capstone 3 to find out.
 
 ![coming-soon](graphics/coming+soon.jpg)
 
+In the meantime, I set out to create a model that could predict if an image contained a banana, a person, both, or neither.
+
+# Data
+
+After scraping Reddit and Google for images, I had about 1,100 images total. Three of the classes were close to balanced, with 'Both' having double the images of the others. I split my data into training, validation, and holdout datasets with splits of 0.65/0.15/0.20 respectively.
+
 Mean Img Size: 1132 X 1243
+
 Stdev: 1043 X 1043
+
+My images varied quit a lot and had a lot of noise.
+
+![banana_stand](graphics/banana_stand.jpg)
+
+# Model
+
+I first started off with a simple CNN. My final simple model used a pattern of Convolution2D and MaxPooling2D layers three times. After those six layers, the model was flattened, and !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+My simple CNN didn't perform very well because I have a very limited set of data with a lot of noise. To help it better learn the features, a few orders of magnitude greater of data would be optimal.
+
+Because of my limited data set, I next took advantage of transfer learning to help my model along. Transfer learning boosts small datasets by loading in initial weights and layers pretraining on large datasets. With the more generalized features, the transfer learning was able to give my model prior information to initiate with.
+
+I used the keras Xception model trained on ImageNet as my initial model. 
+
+![Xception](graphics/imagenet_xception_flow.png)
+
