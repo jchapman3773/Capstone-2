@@ -27,11 +27,11 @@ Unfortunately, you'll have to wait for Capstone 3 to find out.
 
 In the meantime, I set out to create a model that could predict if an image contained a banana, a person, both, or neither.
 
-I also setup a private server on my home desktop with a NVIDIA 1060 3GB GPU to speed things up a bit. This turned out to help a lot, as my final model only took about 30s per epoch to train.
+I also setup a private server on my home desktop with a NVIDIA 1060 3GB GPU to speed things up a bit. This turned out to help a lot, as my final model only took about 30s per epoch to train. This gave me a lot more freedom to mess around with optimizing parameters as my models took just a matter of minutes to train, versus what could have been a matter of hours.
 
 # Data
 
-After scraping Reddit and Google for images, I had about 1,100 images total. I manually filtered the images into 4 categories: Banana, Person, Both, or Neither. Even manually, it was sometimes hard to classify certain images that only had a part of an object in it, like a person's foot or arm. Three of the classes were close to balanced, with 'Both' having double the images of the others. I accounted for this imbalance by calulating sample weights to use in the fitting of my models. I split my data into training, validation, and holdout datasets with splits of 0.65/0.15/0.20 respectively.
+After scraping Reddit and Google for images, I had about 1,100 images total. I manually filtered the images into 4 categories: Banana, Person, Both, or Neither. Even manually, it was sometimes hard to classify certain images that only had a part of an object in it, like a person's foot or arm. Three of the classes were close to balanced, with 'Both' having double the images of the others. I accounted for this imbalance by calulating sample weights to use in the fitting of my models. I split my data into training, validation, and holdout datasets with splits of 0.65/0.15/0.20 respectively. The training data was also augmented using Keras DataImageGenerator.
 
 Mean Img Size: 1132 X 1243
 
