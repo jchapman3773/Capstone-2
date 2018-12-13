@@ -1,3 +1,6 @@
+# DID NOT END UP USING
+
+
 from PIL import Image
 import os
 import numpy as np
