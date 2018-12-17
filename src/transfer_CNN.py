@@ -5,6 +5,7 @@ if os.environ.get('DISPLAY','') == '':
     mpl.use('Agg')
 import numpy as np
 from PIL import Image
+import pickle
 from collections import Counter
 from keras.applications import Xception, ResNet50
 from keras.preprocessing import image
@@ -19,14 +20,37 @@ from print_pretty_confusion_matrix import plot_confusion_matrix_from_data
 from sklearn.metrics import classification_report
 import matplotlib.pyplot as plt
 mpl.style.use('classic')
-np.random.seed(1337)  # for reproducibility
 
+# for reproducibility
+# -----------------------------------------------------------------------------
+seed_value = 42
 
-class TranseferModel():
+# 1. Set `PYTHONHASHSEED` environment variable at a fixed value
+os.environ['PYTHONHASHSEED']=str(seed_value)
 
-    def __init__(self,model=Xception,target_size=(400,400),weights='imagenet',
-                n_categories=4,batch_size=4,augmentation_strength=0.2,
-                preprocessing=preprocess_input,epochs=15):
+# 2. Set `python` built-in pseudo-random generator at a fixed value
+import random
+random.seed(seed_value)
+
+# 3. Set `numpy` pseudo-random generator at a fixed value
+np.random.seed(seed_value)
+
+# 4. Set `tensorflow` pseudo-random generator at a fixed value
+import tensorflow as tf
+tf.set_random_seed(seed_value)
+session_conf = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
+
+# 5. Configure a new global `tensorflow` session
+from keras import backend as K
+sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
+K.set_session(sess)
+# -----------------------------------------------------------------------------
+
+class TransferModel():
+
+    def __init__(self,model=Xception,target_size=(800,800),weights='imagenet',
+                n_categories=4,batch_size=4,augmentation_strength=0.3,
+                preprocessing=preprocess_input,epochs=10):
         self.model = model
         self.target_size = target_size
         self.input_size = self.target_size + (3,)
@@ -40,8 +64,47 @@ class TranseferModel():
         self.preprocessing = preprocessing
         self.epochs = epochs
         self.class_weights = None
-        self.history1 = None
-        self.history2 = None
+
+    def make_generators(self,directory):
+        train_data_dir = directory+'/train'
+        holdout_data_dir = directory+'/holdout'
+
+        train_datagen = ImageDataGenerator(
+            preprocessing_function=self.preprocessing,
+            rotation_range=15*self.augmentation_strength,
+            width_shift_range=self.augmentation_strength,
+            height_shift_range=self.augmentation_strength,
+            shear_range=self.augmentation_strength,
+            zoom_range=self.augmentation_strength,
+            # horizontal_flip=True,
+            vertical_flip=True,
+            validation_split=0.15)
+
+        holdout_datagen = ImageDataGenerator(
+            preprocessing_function=self.preprocessing)
+
+        self.train_generator = train_datagen.flow_from_directory(
+            train_data_dir,
+            target_size=self.target_size,
+            batch_size=self.batch_size,
+            class_mode='categorical',
+            subset='training')
+
+        self.validation_generator = train_datagen.flow_from_directory(
+            train_data_dir,
+            target_size=self.target_size,
+            batch_size=self.batch_size,
+            class_mode='categorical',
+            subset='validation')
+
+        self.holdout_generator = holdout_datagen.flow_from_directory(
+            holdout_data_dir,
+            target_size=self.target_size,
+            batch_size=self.batch_size,
+            class_mode='categorical',
+            shuffle=False)
+
+        return self.train_generator, self.validation_generator, self.holdout_generator
 
     def _create_transfer_model(self):
         base_model = self.model(weights=self.weights,
@@ -53,61 +116,21 @@ class TranseferModel():
         self.model = Model(inputs=base_model.input, outputs=predictions)
         return self.model
 
-    def make_generators(self,directory):
-        train_data_dir = directory+'/train'
-        validation_data_dir = directory+'/validation'
-        holdout_data_dir = directory+'/holdout'
-
-        train_datagen = ImageDataGenerator(
-            preprocessing_function=self.preprocessing,
-            rotation_range=15*self.augmentation_strength,
-            width_shift_range=self.augmentation_strength,
-            height_shift_range=self.augmentation_strength,
-            shear_range=self.augmentation_strength,
-            zoom_range=self.augmentation_strength,
-            horizontal_flip=True,
-            vertical_flip=True)
-
-        test_datagen = ImageDataGenerator(
-            preprocessing_function=self.preprocessing)
-
-        self.train_generator = train_datagen.flow_from_directory(
-            train_data_dir,
-            target_size=self.target_size,
-            batch_size=self.batch_size,
-            class_mode='categorical')
-
-        self.validation_generator = test_datagen.flow_from_directory(
-            validation_data_dir,
-            target_size=self.target_size,
-            batch_size=self.batch_size,
-            class_mode='categorical')
-
-        self.holdout_generator = test_datagen.flow_from_directory(
-            holdout_data_dir,
-            target_size=self.target_size,
-            batch_size=self.batch_size,
-            class_mode='categorical',
-            shuffle=False)
-
-        self.holdout_generator_images = test_datagen.flow_from_directory(
-            holdout_data_dir,
-            target_size=self.target_size,
-            batch_size=226,
-            class_mode='categorical',
-            shuffle=False)
-        return self.train_generator, self.validation_generator, self.holdout_generator
-
     def _find_class_weights(self):
         counter = Counter(self.train_generator.classes)
         max_val = float(max(counter.values()))
         self.class_weights = {class_id : max_val/num_images for class_id, num_images in counter.items()}
         return self.class_weights
 
+    def _change_trainable_layers(self, trainable_index):
+        for layer in self.model.layers[:trainable_index]:
+            layer.trainable = False
+        for layer in self.model.layers[trainable_index:]:
+            layer.trainable = True
+
     def fit(self,freeze_indices,optimizers,warmup_epochs=5):
         # callbacks
-        # filepath="models/transfer_CNN-{epoch:02d}-{val_acc:.2f}.h5"
-        filepath='models/transfer_CNN.h5'
+        filepath = 'models/transfer_CNN.h5'
         mc = callbacks.ModelCheckpoint(filepath,
                                             monitor='val_loss',
                                             verbose=1,
@@ -118,9 +141,10 @@ class TranseferModel():
         hist = callbacks.History()
         es = callbacks.EarlyStopping(monitor='val_loss',
                                             min_delta=0,
-                                            patience=4,
+                                            patience=2,
                                             verbose=1,
                                             mode='auto')
+
         if not os.path.exists('tensorboard_logs/transfer_CNN_tensorboard_with_weights'):
             os.makedirs('tensorboard_logs/transfer_CNN_tensorboard_with_weights')
         tensorboard = callbacks.TensorBoard(
@@ -131,42 +155,33 @@ class TranseferModel():
                     embeddings_freq=0,
                     write_images=False)
 
-        #change head
+        # change head from default
         self._create_transfer_model()
-        self.change_trainable_layers(freeze_indices[0])
+        # fix class imbalance
         self._find_class_weights()
-        # train head
-        self.model.compile(optimizer=optimizers[0],
-                      loss='categorical_crossentropy', metrics=['accuracy'])
 
-        self.history1 = self.model.fit_generator(self.train_generator,
-                                  steps_per_epoch=len(self.train_generator),
-                                  epochs=warmup_epochs,
-                                  class_weight=self.class_weights,
-                                  validation_data=self.validation_generator,
-                                  validation_steps=len(self.validation_generator),
-                                  callbacks=[mc, tensorboard, hist])
-        # train more layers
-        self.change_trainable_layers(freeze_indices[1])
+        # train head, then chunks
+        histories = []
+        for i, _ in enumerate(freeze_indices):
+            if i == 0:
+                e = warmup_epochs
+                opt = optimizer[0]
+            else:
+                e = self.epochs
+                opt = optimizer[1]
+            self._change_trainable_layers(freeze_indices[i])
+            self.model.compile(optimizer=opt,
+                          loss='categorical_crossentropy', metrics=['accuracy'])
 
-        self.model.compile(optimizer=optimizers[0],
-                      loss='categorical_crossentropy', metrics=['accuracy'])
-
-        self.history2 = self.model.fit_generator(self.train_generator,
-                                  steps_per_epoch=len(self.train_generator),
-                                  epochs=self.epochs,
-                                  class_weight=self.class_weights,
-                                  validation_data=self.validation_generator,
-                                  validation_steps=len(self.validation_generator),
-                                  callbacks=[mc, tensorboard, hist])
-
-        return self.history1, self.history2
-
-    def change_trainable_layers(self, trainable_index):
-        for layer in self.model.layers[:trainable_index]:
-            layer.trainable = False
-        for layer in self.model.layers[trainable_index:]:
-            layer.trainable = True
+            history = self.model.fit_generator(self.train_generator,
+                                      steps_per_epoch=len(self.train_generator),
+                                      epochs=e,
+                                      class_weight=self.class_weights,
+                                      validation_data=self.validation_generator,
+                                      validation_steps=len(self.validation_generator),
+                                      callbacks=[mc, tensorboard, hist])
+            histories.append(history.history)
+        return histories
 
     def best_training_model(self):
         model = load_model('models/transfer_CNN.h5')
@@ -175,6 +190,8 @@ class TranseferModel():
         predictions = np.argmax(pred, axis=-1)
         label_map = (self.holdout_generator.class_indices)
         label_map = dict((v,k) for k,v in label_map.items()) #flip k,v
+        with open(f"models/label_map.txt", "w") as text_file:
+            print(label_map,file=text_file) #save labels for app interpretation
         names = np.array([x.split('/') for x in self.holdout_generator.filenames])
         predictions = [label_map[k] for k in predictions]
         predictions = np.array(predictions).reshape(-1,1)
@@ -203,7 +220,7 @@ class TranseferModel():
         failed = data[data[:,0]!=data[:,2]]
         fig, axes = plt.subplots(len(failed),2)
 
-        test_X = self.holdout_generator_images[0][0]
+        test_X = self.name_generator[0][0]
         indices = np.where(data[:,0]!=data[:,2])[0]
 
         for idx,row in enumerate(failed):
@@ -230,44 +247,78 @@ class TranseferModel():
         plt.close()
         return
 
-    def plot_history(self):
+    def _hstack_histories(self,histories,metric):
+        lst = []
+        for hist in histories:
+            lst.append(hist[metric])
+        return tuple(lst)
+
+    def plot_history(self, histories):
         # Plot training & validation accuracy values
-        hist_acc = np.hstack((self.history1.history['acc'],self.history2.history['acc']))
-        hist_val_acc = np.hstack((self.history1.history['val_acc'],self.history2.history['val_acc']))
+        hist_acc = np.hstack(self._hstack_histories(histories,'acc'))
+        hist_val_acc = np.hstack(self._hstack_histories(histories,'val_acc'))
         plt.plot(hist_acc)
         plt.plot(hist_val_acc)
-        plt.title('Model accuracy')
+        plt.title('Model Accuracy')
         plt.ylabel('Accuracy')
         plt.xlabel('Epoch')
         plt.axvline(5,color='k',linestyle='dotted')
+        plt.axvline(15,color='k',linestyle='dotted')
+        plt.axvline(25,color='k',linestyle='dotted')
         plt.legend(['Train', 'Test'], loc='upper left')
         plt.tight_layout()
         plt.savefig('../graphics/Transfer_CNN_acc_hist.png')
         plt.close()
 
         # Plot training & validation loss values
-        hist_loss = np.hstack((self.history1.history['loss'],self.history2.history['loss']))
-        hist_val_loss = np.hstack((self.history1.history['val_loss'],self.history2.history['val_loss']))
+        hist_loss = np.hstack(self._hstack_histories(histories,'loss'))
+        hist_val_loss = np.hstack(self._hstack_histories(histories,'val_loss'))
         plt.plot(hist_loss)
         plt.plot(hist_val_loss)
-        plt.title('Model loss')
+        plt.title('Model Loss')
         plt.ylabel('Loss')
         plt.xlabel('Epoch')
         plt.axvline(5,color='k',linestyle='dotted')
+        plt.axvline(15,color='k',linestyle='dotted')
+        plt.axvline(25,color='k',linestyle='dotted')
         plt.legend(['Train', 'Test'], loc='upper left')
         plt.tight_layout()
         plt.savefig('../graphics/Transfer_CNN_loss_hist.png')
         plt.close()
 
+        # Plot everything
+        fig, ax1 = plt.subplots()
+        ax1.plot(hist_acc)
+        ax1.plot(hist_val_acc)
+        ax1.set_ylabel('Accuracy')
+
+        ax2 = ax1.twinx()
+        ax2.plot(hist_loss)
+        ax2.plot(hist_val_loss)
+        ax2.set_ylabel('Loss')
+
+        ax1.set_title('Model Accuracy and Loss')
+        ax1.set_xlabel('Epoch')
+        ax1.axvline(5,color='k',linestyle='dotted')
+        ax1.axvline(15,color='k',linestyle='dotted')
+        ax1.axvline(25,color='k',linestyle='dotted')
+        ax1.legend(['Train', 'Test'], loc='upper left')
+        fig.tight_layout()
+        plt.savefig('../graphics/Transfer_CNN_history.png')
+        plt.close()
+
 if __name__ == '__main__':
     dir = '../data/Banana_People_Not/4_Classes'
-    transfer_CNN = TranseferModel()
-    transfer_CNN.make_generators(dir)
-    freeze_indices = [132, 126]
-    optimizers = [Adam(lr=0.0005), Adam(lr=0.00005)]
 
-    transfer_CNN.fit(freeze_indices,optimizers)
-    transfer_CNN.plot_history()
+    transfer_CNN = TransferModel()
+    transfer_CNN.make_generators(dir)
+
+    freeze_indices = [132, 126, 116 ,106]
+    optimizers = [Adam(lr=0.0005), Adam(lr=0.00005)]
+    histories = transfer_CNN.fit(freeze_indices,optimizers)
+    pickle.dump(histories, open('models/hist.pkl', 'wb'))
+
+    transfer_CNN.plot_history(histories)
 
     # # plot model
     # from keras.utils import plot_model
@@ -275,6 +326,9 @@ if __name__ == '__main__':
 
     metrics, data, pred = transfer_CNN.best_training_model()
     transfer_CNN.print_matrix(data[:,0],data[:,2])
-    print(metrics)
     transfer_CNN.return_failed_images(dir,data,pred)
+    print(metrics)
     print(classification_report(data[:,0],data[:,2]))
+
+    with open(f"models/transfer_CNN_report.txt", "w") as text_file:
+        print(str(metrics)+'\n\n'+str(classification_report(data[:,0],data[:,2])),file=text_file)
