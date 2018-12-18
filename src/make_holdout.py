@@ -1,10 +1,12 @@
+# Modified from Michael Dyer's script
+
 from numpy.random import choice
 import cv2
 import os
 import numpy as np
 
 
-def train_val_holdout_split_images(root_path, data_dir, train_ratio  = 0.65, validation_ratio = 0.15, holdout_ratio = 0.2):
+def train_val_holdout_split_images(root_path, data_dir, train_ratio  = 0.85, validation_ratio = 0.0, holdout_ratio = 0.15):
     """
     Utility to split categorical training files organized by folder into training and testing, with resizing and max_images
     Args:
@@ -23,7 +25,7 @@ def train_val_holdout_split_images(root_path, data_dir, train_ratio  = 0.65, val
     validation_folder = root_path + data_dir + '/validation'
     holdout_folder    = root_path + data_dir + '/holdout'
 
-    root_path = root_path + '/Raw'
+    root_path = root_path + '/raw_3c'
 
     resolutions = np.ones((1,2))
 
@@ -48,6 +50,8 @@ def train_val_holdout_split_images(root_path, data_dir, train_ratio  = 0.65, val
                print(new_path)
     print(f'Mean Img Size: {resolutions[1:].mean(axis=0)}')
     print(f'Stdev Img Size: {resolutions[1:].std(axis=0)}')
+    print(f'Min Img Size: {resolutions[1:].min(axis=0)}')
+    print(f'Max Img Size: {resolutions[1:].max(axis=0)}')
 
 
-train_val_holdout_split_images('../data/Banana_People_Not','/4_Classes')
+train_val_holdout_split_images('../data/Banana_People_Not','/3_Classes')
