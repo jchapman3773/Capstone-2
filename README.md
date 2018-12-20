@@ -21,9 +21,7 @@ In 2005, an internet meme was started when a woman, trying to sell a TV, put a b
 
 So this got me thinking, what if you could use a banana as an actual unit for scale in an image?
 
-Unfortunately, you'll have to wait for Capstone 3 to find out.
-
-[<img src=graphics/coming+soon.jpg width="30%">](http://www.housecallswithdrg.com/coming-soon/)
+Go to my [Capstone-3](https://github.com/jchapman3773/Capstone-3) to find out!
 
 In the meantime, I set out to create a model that could predict if an image contained a banana, a person, both, or neither.
 
